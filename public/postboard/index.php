@@ -21,9 +21,19 @@
     <script src="https://fb.me/JSXTransformer-0.13.3.js"></script>
     <script type="text/jsx">
     var Board = React.createClass({
+        getInitialState: function() {
+            return {
+                postCount: this.props.numOfPosts
+            }
+        },
+        makeNewPost: function() {
+            this.setState({
+                postCount: this.state.postCount + 1
+            });
+        },
         render: function() {
             var posts = [];
-            for (var ii = 0; ii < this.props.numOfPosts; ii++) {
+            for (var ii = 0; ii < this.state.postCount; ii++) {
                 posts.push(
                     <Post index={ii} key={ii} />
                 );
@@ -31,6 +41,7 @@
             return (
                 <div className="board">
                     {posts}
+                    <button onClick={this.makeNewPost}>New Post</button>
                 </div>
             )
         }
