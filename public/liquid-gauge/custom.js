@@ -9,7 +9,7 @@ var LiquidGauge = React.createClass({
             waveHeight: 0.05, // The wave height as a percentage of the radius of the wave circle.
             waveCount: 1, // The number of full waves per width of the wave circle.
             waveRiseTime: 1000, // The amount of time in milliseconds for the wave to rise from 0 to it's final height.
-            waveAnimateTime: 18000, // The amount of time in milliseconds for a full wave to enter the wave circle.
+            waveAnimateTime: 1000, // The amount of time in milliseconds for a full wave to enter the wave circle.
             waveRise: true, // Control if the wave should rise from 0 to it's full height, or start at it's full height.
             waveHeightScaling: true, // Controls wave size scaling at low and high fill percentages. When true, wave height reaches it's maximum at 50% fill, and minimum at 0% and 100% fill. This helps to prevent the wave from making the wave circle from appear totally full or empty when near it's minimum or maximum fill.
             waveAnimate: true, // Controls if the wave scrolls or is static.
@@ -38,6 +38,9 @@ var LiquidGauge = React.createClass({
             });
     },
     updateGauge: function(value) {
+        if(config == null) var config = this.state;
+        var $this = this;
+
         var newFinalValue = parseFloat(value).toFixed(2);
         var textRounderUpdater = function(value){ return Math.round(value); };
         if(parseFloat(newFinalValue) != parseFloat(textRounderUpdater(newFinalValue))){
@@ -92,7 +95,7 @@ var LiquidGauge = React.createClass({
             .each("end", function(){
                 if(config.waveAnimate){
                     wave.attr('transform','translate('+waveAnimateScale(0)+',0)');
-                    animateWave(config.waveAnimateTime);
+                    $this.animateWave(config.waveAnimateTime);
                 }
             });
         waveGroup.transition()
@@ -108,7 +111,6 @@ var LiquidGauge = React.createClass({
         var locationY = parseInt(gauge.style("height"))/2 - radius;
         var fillPercent = Math.max(config.minValue, Math.min(config.maxValue, this.props.value))/config.maxValue;
 
-        var waveHeightScale;
         if(config.waveHeightScaling){
             waveHeightScale = d3.scale.linear()
                 .range([0,config.waveHeight,0])
@@ -122,16 +124,16 @@ var LiquidGauge = React.createClass({
         var textPixels = (config.textSize*radius/2);
         var textFinalValue = parseFloat(this.props.value).toFixed(2);
         var textStartValue = config.valueCountUp?config.minValue:textFinalValue;
-        var percentText = config.displayPercent?"%":"";
+        percentText = config.displayPercent?"%":"";
         var circleThickness = config.circleThickness * radius;
         var circleFillGap = config.circleFillGap * radius;
-        var fillCircleMargin = circleThickness + circleFillGap;
-        var fillCircleRadius = radius - fillCircleMargin;
+        fillCircleMargin = circleThickness + circleFillGap;
+        fillCircleRadius = radius - fillCircleMargin;
         var waveHeight = fillCircleRadius*waveHeightScale(fillPercent*100);
 
         var waveLength = fillCircleRadius*2/config.waveCount;
         var waveClipCount = 1+config.waveCount;
-        var waveClipWidth = waveLength*waveClipCount;
+        waveClipWidth = waveLength*waveClipCount;
 
         // Rounding functions so that the correct number of decimal places is always displayed as the value counts up.
         var textRounder = function(value){ return Math.round(value); };
@@ -188,7 +190,7 @@ var LiquidGauge = React.createClass({
             .attr('transform','translate('+radius+','+radius+')');
 
         // Text where the wave does not overlap.
-        var text1 = gaugeGroup.append("text")
+        text1 = gaugeGroup.append("text")
             .text(textRounder(textStartValue) + percentText)
             .attr("class", "liquidFillGaugeText")
             .attr("text-anchor", "middle")
@@ -201,7 +203,7 @@ var LiquidGauge = React.createClass({
             .x(function(d) { return waveScaleX(d.x); } )
             .y0(function(d) { return waveScaleY(Math.sin(Math.PI*2*config.waveOffset*-1 + Math.PI*2*(1-config.waveCount) + d.y*2*Math.PI));} )
             .y1(function(d) { return (fillCircleRadius*2 + waveHeight); } );
-        var waveGroup = gaugeGroup.append("defs")
+        waveGroup = gaugeGroup.append("defs")
             .append("clipPath")
             .attr("id", "clipWave" + this.props.id);
         wave = waveGroup.append("path")
@@ -219,7 +221,7 @@ var LiquidGauge = React.createClass({
             .style("fill", config.waveColor);
 
         // Text where the wave does overlap.
-        var text2 = fillCircleGroup.append("text")
+        text2 = fillCircleGroup.append("text")
             .text(textRounder(textStartValue) + percentText)
             .attr("class", "liquidFillGaugeText")
             .attr("text-anchor", "middle")
@@ -242,7 +244,7 @@ var LiquidGauge = React.createClass({
         }
 
         // Make the wave rise. wave and waveGroup are separate so that horizontal and vertical movement can be controlled independently.
-        var waveGroupXPosition = fillCircleMargin+fillCircleRadius*2-waveClipWidth;
+        waveGroupXPosition = fillCircleMargin+fillCircleRadius*2-waveClipWidth;
         if(config.waveRise){
             waveGroup.attr('transform','translate('+waveGroupXPosition+','+waveRiseScale(0)+')')
                 .transition()
@@ -256,10 +258,13 @@ var LiquidGauge = React.createClass({
         if(config.waveAnimate) this.animateWave();
     },
     componentWillMount: function() {
-        var wave, waveAnimateScale;
+        var config, fillCircleMargin, fillCircleRadius, percentText, wave, waveAnimateScale, waveClipWidth, waveGroup, waveGroupXPosition, waveHeightScale;
     },
     componentDidMount: function() {
         this.renderDisplay();
+    },
+    componentDidUpdate: function() {
+        this.updateGauge(this.props.value);
     },
     render: function() {
         return (
@@ -281,7 +286,7 @@ var FormWrapper = React.createClass({
         return (
             <div>
                 <LiquidGauge value={this.state.value} />
-                <input type="text" onChange={this.onNumberChange} />
+                <input type="number" onChange={this.onNumberChange} />
             </div>
         )
     }
